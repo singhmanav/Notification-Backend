@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AngularJS File Upoad Example with $http and FormData</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.4/angular.min.js"></script>
+</head>
+
+<body ng-app="fupApp">
+<div ng-controller="fupController">
+
+    <input type="file" id="file1" name="file" multiple
+           ng-files="getTheFiles($files)" />
+
+    <input type="button" ng-click="uploadFiles()" value="Upload" />
+</div>
+<script>
+    angular.module('fupApp', [])
+        .directive('ngFiles', ['$parse', function ($parse) {
+
+            function fn_link(scope, element, attrs) {
+                var onChange = $parse(attrs.ngFiles);
+                element.on('change', function (event) {
+                    onChange(scope,{$files: event.target.files});
+                });
+            };
+
+            return {
+                link: fn_link
+            }
+        } ])
+        .controller('fupController', function ($scope, $http) {
+
+            var formdata = new FormData();
+            $scope.getTheFiles = function ($files) {
+
+                    formdata.append('file', $files[0]);
+
+            };
+
+            // NOW UPLOAD THE FILES.
+            $scope.uploadFiles = function () {
+
+                var request = {
+                    method: 'POST',
+                    url: '/uploadFile',
+                    data: formdata,
+                    headers: {
+                        transformRequest:angular.identity,
+                        'Content-Type': undefined
+                    }
+                };
+
+                // SEND THE FILES.
+                $http(request)
+                    .success(function (d) {
+                        alert(d);
+                    })
+                    .error(function () {
+                    });
+            }
+
+			$scope.$watch('file', function(newfile, oldfile) {
+				if(angular.equals(newfile, oldfile) ){
+					return;
+				}
+
+				upload(newfile).then(function(res){
+					// DO SOMETHING WITH THE RESULT!
+					console.log("result", res);
+				})
+
+
+			});
+
+        function upload(file) {
+            var upl = $http({
+                method: 'POST',
+                url: 'http://jsonplaceholder.typicode.com/posts', // /api/upload
+                headers: {
+                  'Content-Type': 'multipart/form-data'
+                },
+                data: {
+                  upload: file
+                },
+                transformRequest: function(data, headersGetter) {
+                  var formData = new FormData();
+                  angular.forEach(data, function(value, key) {
+                    formData.append(key, value);
+                  });
+
+                  var headers = headersGetter();
+                  delete headers['Content-Type'];
+
+                  return formData;
+                }
+              });
+              return upl.then(handleSuccess, handleError);
+
+            }
+        });
+</script>
+</html>
+</body>
